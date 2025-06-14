@@ -3,7 +3,10 @@ import time
 import random
 
 
+
 pygame.init()
+pygame.font.init()
+font = pygame.font.SysFont('Arial', 25)
 
 #Dimesions
 width = 640
@@ -48,13 +51,13 @@ def main():
             if event.type == pygame.QUIT:
                 game_over = True
             elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_UP and direction != down:
+                if event.key == pygame.K_UP or event.key == pygame.K_w and direction != down:
                     direction = up
-                elif event.key == pygame.K_DOWN and direction != up:
+                elif event.key == pygame.K_DOWN or event.key == pygame.K_s and direction != up:
                     direction = down
-                elif event.key == pygame.K_LEFT and direction != right:
+                elif event.key == pygame.K_LEFT or event.key == pygame.K_a  and direction != right:
                     direction = left
-                elif event.key == pygame.K_RIGHT and direction != left:
+                elif event.key == pygame.K_RIGHT or event.key == pygame.K_d and direction != left:
                     direction = right
                 
 
@@ -80,12 +83,45 @@ def main():
         for block in snake:
             draw_block(green, block)
         draw_block(red, food)
+        
+        draw_score(score)
+        
         pygame.display.update()
         clock.tick(10)
         
-    print("Game Over! Score: ", score)
-    time.sleep(2)
-    pygame.quit()
+    show_game_over(score)
+    
+        
+def show_game_over(score):
+    screen.fill(black)
+    game_over_text = font.render("GAME OVER", True, red)
+    score_text = font.render(f"Final Score: {score}", True, white)
+    prompt_text = font.render("Press Q to Quit or R to Restart", True, white)
+    
+    screen.blit(game_over_text, [width //2 - 80, height //2 - 60])
+    screen.blit(score_text, [width //2 - 100, height // 2 - 20])
+    screen.blit(prompt_text, [width // 2 - 180, height // 2 + 20])
+    pygame.display.update()
+    
+    waiting = True
+    while waiting:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                quit()
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_q:
+                    pygame.quit()
+                    quit()
+                elif event.key == pygame.K_r:
+                    main()
+                    
+    
+def draw_score(score):
+    text = font.render(f"Score: {score}", True, white)
+    screen.blit(text, [10,10])
+    
+    
     
 if __name__ == "__main__":
     main()
