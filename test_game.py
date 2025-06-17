@@ -11,7 +11,7 @@ if __name__ == "__main__":
         action = [0,0,0]
         action[random.randint(0,2)] = 1
         
-        reward, game_over, score = SnakeAI.play_step(action)
+        reward, game_over, score = game.play_step(action)
         
         if game_over:
             print(f"Score: {score}")

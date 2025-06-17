@@ -37,10 +37,10 @@ class SnakeAI:
         self.display = pygame.display.set_mode((width, height))
         pygame.display.set_caption("Snake AI")
         self.clock = pygame.time.Clock()
-        self.reset
+        self.reset()
     
     def reset(self):
-        self.direction(right)
+        self.direction = right
         self.head = [width // 2, height // 2]
         self.snake = [self.head[:], [self.head[0]- block_size, [self.head[1]], self.head[0] - 2 * block_size, self.head[1]]]
         self.score = 0
@@ -52,7 +52,7 @@ class SnakeAI:
         while True:
             x = random.randint(0, (width - block_size) // block_size) * block_size
             y = random.randint(0, (height - block_size) // block_size) * block_size
-            self.food[x,y]
+            self.food = (x,y)
             if self.food not in self.snake:
                 break
     
@@ -70,10 +70,10 @@ class SnakeAI:
         #game over lul
         reward = 0
         game_over = False
-        if self._is_collsion_() or self.frame_iteration > 100 * len(self.snake):
+        if self._is_collision() or self.frame_iteration > 100 * len(self.snake):
             game_over = True
             reward = -10
-            return reward, self.score, game_over
+            return reward, game_over, self.score
         
         #is snake hungry
         if self.head == self.food:
@@ -88,7 +88,7 @@ class SnakeAI:
         
         return reward, self.score, game_over
     
-    def _is_collison(self, pt=None):
+    def _is_collision(self, pt=None):
         if pt == None:
             pt = self.head
         
@@ -106,28 +106,30 @@ class SnakeAI:
         self.display.fill(black)
         for pt in self.snake:
             pygame.draw.rect(self.display, green, pygame.Rect(pt[0], pt[1], block_size, block_size))
-        pygame.draw.rect(self.display, green, pygame.draw.Rect(self.food[0], self.food[1], block_size, block_size))
+            pygame.draw.rect(self.display, red, pygame.Rect(self.food[0], self.food[1], block_size, block_size))
         
         font = pygame.font.SysFont("Arial", 25)
         text = font.render(f"Score: {self.score}", True, white)
         self.display.blit(text, [10,10])
         pygame.display.flip()
         
-    def _move(self, action):
-        #straight, left, down
-        clock_wise = [right, down, left, up]
-        idx = clock_wise.index(self.direction)
-        
-        if np.array_equal(action, [1,0,0]):
-            new_dir =clock_wise[idx]
+    def move(self, action):
+    # [straight, right, left]
+        clockwise = [right, down, left, up]
+        idx = clockwise.index(self.direction)
+        if np.array_equal(action, [1, 0, 0]):
+            new_dir = clockwise[idx]  # straight
         elif np.array_equal(action, [0, 1, 0]):
-            new_dir = clock_wise[(idx + 1) % 4]  # right turn r -> d -> l -> u
+            new_dir = clockwise[(idx + 1) % 4]  # right turn
         else:  # [0, 0, 1]
-            new_dir = clock_wise[(idx - 1) % 4] 
-        
+            new_dir = clockwise[(idx - 1) % 4]  # left turn
+
         self.direction = new_dir
-        self.head += self.direction[0] * block_size
-        self.head[1] += self.directionp[1] * block_size 
+
+        x, y = self.head
+        dx, dy = self.direction
+        self.head = [x + dx * block_size, y + dy * block_size]
+
             
         
         
@@ -176,7 +178,6 @@ def draw_score(score):
     
     
     
-if __name__ == "__main__":
-    main()
+
         
         
