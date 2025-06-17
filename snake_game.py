@@ -2,8 +2,8 @@ import pygame
 import time
 import random
 import numpy as np
-
-
+from enum import Enum
+from collections import namedtuple
 
 pygame.init()
 pygame.font.init()
@@ -32,12 +32,28 @@ aciton = [1,0,0]
 action = [0,1,0]
 action = [0,0,1]
 
+Point = namedtuple('Point', 'x, y')
+
+class Direction(Enum):
+    right = 1
+    left = 2
+    up = 3
+    down = 4
+
 class SnakeAI:
     def __init__(self):
+        
+        self.width = 640
+        self.height = 480
+        self.block_size = 20
+        
+        
         self.display = pygame.display.set_mode((width, height))
         pygame.display.set_caption("Snake AI")
         self.clock = pygame.time.Clock()
         self.reset()
+        
+        
     
     def reset(self):
         self.direction = right
@@ -49,12 +65,12 @@ class SnakeAI:
         self.frame_iteration = 0
         
     def _place_food(self):
-        while True:
-            x = random.randint(0, (width - block_size) // block_size) * block_size
-            y = random.randint(0, (height - block_size) // block_size) * block_size
-            self.food = (x,y)
-            if self.food not in self.snake:
-                break
+        x = random.randint(0, (width - block_size) // block_size) * block_size
+        y = random.randint(0, (height - block_size) // block_size) * block_size
+        self.food = Point(x,y)
+        if self.food  in self.snake:
+            self._place_food()
+                
     
     def play_step(self, action):
         self.frame_iteration += 1
@@ -73,20 +89,22 @@ class SnakeAI:
         if self._is_collision() or self.frame_iteration > 100 * len(self.snake):
             game_over = True
             reward = -10
-            return reward, game_over, self.score
+            return game_over, self.score, reward
         
         #is snake hungry
-        if self.head == self.food:
+        if Point(self.head[0], self.head[1]) == self.food:
+            print("Food Eaten!")
             self.score += 1
             reward = 10
             self._place_food()
         else:
             self.snake.pop()
+            reward = 0.1
             
         self._update_ui()
         self.clock.tick(60)
         
-        return reward, self.score, game_over
+        return game_over, self.score, reward
     
     def _is_collision(self, pt=None):
         if pt == None:

@@ -3,6 +3,9 @@ from snake_game import SnakeAI
 import numpy as np
 
 
+# Runs the game with a random selected action every time
+#
+
 if __name__ == "__main__":
     game = SnakeAI()
     

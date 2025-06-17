@@ -22,6 +22,10 @@ class Agent:
         self.model = LinearQNet(11,256,3)
         self.trainer = QTrainer(self.model, lr=LR, gamma = 0.9)
         
+        
+        self.record = 0
+        
+        
     def get_state(self, game):
         head = game.snake[0]
         point_l = Point(head[0] - game.block_size, head[1])
@@ -62,12 +66,12 @@ class Agent:
             #Food Checks
             game.food[0] < game.head[0], #Food is to the left
             game.food[0] > game.head[0], #Food is to the right
-            game.food[0] > game.head[1], #Food is above
-            game.food[0] < game.head[1] #Food is below
+            game.food[0] < game.head[1], #Food is above
+            game.food[0] > game.head[1] #Food is below
             
         ]
         
-        return np.array(state, dype=int)
+        return np.array(state, dtype=int)
     
     def remember(self, state, action, reward, next_step, done):
         #Stores on game step at a time for memory
@@ -78,16 +82,38 @@ class Agent:
         self.epsilon = 80 - self.n_games #decreases randomness over number of games played
         final_move = [0,0,0]
         
+        
+        
         if random.randint(0, 200) < self.epsilon:
             move = random.randint(0,2)
             final_move[move] = 1
         else:
             state0 = torch.tensor(state, dtype=torch.float)
+            
+            if state0.ndim == 1:
+                state0 = state0.unsqueeze(0)
+            
             predictiction = self.model(state0)
             move = torch.argmax(predictiction).item()
             final_move[move] = 1
         
         return final_move
+    
+    
+    
+    def train_short_memory(self, state, action, reward, next_state, done):
+        self.trainer.train_step(state, action, reward, next_state, done)
+        #print(f"Eplision{self.epsilon}, Trained!")
+    def train_long_memory(self):
+        if len(self.memory) > BATCH_SIZE:
+            mini_sample = random.sample(self.memory, BATCH_SIZE)
+        else:
+            mini_sample = self.memory
+            
+        states, actions, rewards, next_states, dones = zip(*mini_sample)
+        self.trainer.train_step(states, actions, rewards, next_states, dones)
+        
+        
             
         
         
