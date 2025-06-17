@@ -3,5 +3,4 @@ This is a learning project, as I want to get expirence with coding in general al
 
 To DO:
 Add AI implemetation
-Play Again Screen
-GUI for Score
+
