@@ -1,6 +1,7 @@
 import pygame
 import time
 import random
+import numpy as np
 
 
 
@@ -26,70 +27,122 @@ left = (-1, 0)
 right = (1, 0)
 
 
-screen = pygame.display.set_mode((width, height))
-pygame.display.set_caption('Snake Game')
-clock = pygame.time.Clock()
+#actions
+aciton = [1,0,0]
+action = [0,1,0]
+action = [0,0,1]
 
-def draw_block(color,pos):
-    rect = pygame.Rect(pos[0], pos[1], block_size, block_size)
-    pygame.draw.rect(screen, color, rect)
+class SnakeAI:
+    def __init__(self):
+        self.display = pygame.display.set_mode((width, height))
+        pygame.display.set_caption("Snake AI")
+        self.clock = pygame.time.Clock()
+        self.reset
     
-def random_food():
-    x = random.randint(0, (width - block_size) // block_size) * block_size
-    y = random.randint(0, (height - block_size) // block_size) * block_size
-    return (x, y)
-
-def main():
-    snake = [(100, 100), (80, 100), (60, 100)]
-    direction = right
-    food = random_food()
-    score = 0
-    game_over = False
+    def reset(self):
+        self.direction(right)
+        self.head = [width // 2, height // 2]
+        self.snake = [self.head[:], [self.head[0]- block_size, [self.head[1]], self.head[0] - 2 * block_size, self.head[1]]]
+        self.score = 0
+        self.food = None
+        self._place_food()
+        self.frame_iteration = 0
+        
+    def _place_food(self):
+        while True:
+            x = random.randint(0, (width - block_size) // block_size) * block_size
+            y = random.randint(0, (height - block_size) // block_size) * block_size
+            self.food[x,y]
+            if self.food not in self.snake:
+                break
     
-    while not game_over:
+    def play_step(self, action):
+        self.frame_iteration += 1
         for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                game_over = True
-            elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_UP or event.key == pygame.K_w and direction != down:
-                    direction = up
-                elif event.key == pygame.K_DOWN or event.key == pygame.K_s and direction != up:
-                    direction = down
-                elif event.key == pygame.K_LEFT or event.key == pygame.K_a  and direction != right:
-                    direction = left
-                elif event.key == pygame.K_RIGHT or event.key == pygame.K_d and direction != left:
-                    direction = right
-                
-
-        head = (snake[0][0] + direction[0] * block_size, snake[0][1] + direction [1] * block_size)
-        snake.insert(0, head)
+            if event.type == pygame.quit:
+                pygame.quit()
+                quit()
         
-        #When the snake eats
-        if head == food:
-            score += 1
-            food = random_food()
-        else:
-            snake.pop()
+        #move actions
+        self.move(action)
+        self.snake.insert(0, list(self.head))
         
-        #If the snake has a collison
-        if (head in snake[1:] or
-            head[0] < 0 or head[0] >= width or
-            head[1] < 0 or head[1] >= height):
+        #game over lul
+        reward = 0
+        game_over = False
+        if self._is_collsion_() or self.frame_iteration > 100 * len(self.snake):
             game_over = True
-            break
+            reward = -10
+            return reward, self.score, game_over
         
-        #Drawing in the World
-        screen.fill(black)
-        for block in snake:
-            draw_block(green, block)
-        draw_block(red, food)
+        #is snake hungry
+        if self.head == self.food:
+            self.score += 1
+            reward = 10
+            self._place_food()
+        else:
+            self.snake.pop()
+            
+        self._update_ui()
+        self.clock.tick(60)
         
-        draw_score(score)
+        return reward, self.score, game_over
+    
+    def _is_collison(self, pt=None):
+        if pt == None:
+            pt = self.head
         
-        pygame.display.update()
-        clock.tick(10)
+        #Check if head bonked on wall
+        if pt[0] < 0 or pt[0] >= width or pt[1] < 0 or pt[1] >= height:
+            return True
         
-    show_game_over(score)
+        #Check if tried to eat self
+        if pt in self.snake[1:]:
+            return True
+        
+        return False
+
+    def _update_ui(self):
+        self.display.fill(black)
+        for pt in self.snake:
+            pygame.draw.rect(self.display, green, pygame.Rect(pt[0], pt[1], block_size, block_size))
+        pygame.draw.rect(self.display, green, pygame.draw.Rect(self.food[0], self.food[1], block_size, block_size))
+        
+        font = pygame.font.SysFont("Arial", 25)
+        text = font.render(f"Score: {self.score}", True, white)
+        self.display.blit(text, [10,10])
+        pygame.display.flip()
+        
+    def _move(self, action):
+        #straight, left, down
+        clock_wise = [right, down, left, up]
+        idx = clock_wise.index(self.direction)
+        
+        if np.array_equal(action, [1,0,0]):
+            new_dir =clock_wise[idx]
+        elif np.array_equal(action, [0, 1, 0]):
+            new_dir = clock_wise[(idx + 1) % 4]  # right turn r -> d -> l -> u
+        else:  # [0, 0, 1]
+            new_dir = clock_wise[(idx - 1) % 4] 
+        
+        self.direction = new_dir
+        self.head += self.direction[0] * block_size
+        self.head[1] += self.directionp[1] * block_size 
+            
+        
+        
+        
+        
+                
+                
+        
+            
+        
+        
+        
+        
+
+
     
         
 def show_game_over(score):
