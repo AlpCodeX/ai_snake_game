@@ -27,9 +27,10 @@ while True:
         agent.n_games += 1
         
         agent.train_long_memory()
-        
+    
         if score > agent.record:
             agent.record = score
             agent.model.save()
             
         print(f'Game: {agent.n_games} | Score: {score} | Record: {agent.record}')
+    

@@ -27,10 +27,7 @@ left = (-1, 0)
 right = (1, 0)
 
 
-#actions
-aciton = [1,0,0]
-action = [0,1,0]
-action = [0,0,1]
+
 
 Point = namedtuple('Point', 'x, y')
 
@@ -58,7 +55,10 @@ class SnakeAI:
     def reset(self):
         self.direction = right
         self.head = [width // 2, height // 2]
-        self.snake = [self.head[:], [self.head[0]- block_size, [self.head[1]], self.head[0] - 2 * block_size, self.head[1]]]
+        self.snake = [
+            self.head[:], 
+            [self.head[0]- block_size, self.head[1]],
+            [self.head[0] - 2 * block_size, self.head[1]]]
         self.score = 0
         self.food = None
         self._place_food()
@@ -79,27 +79,39 @@ class SnakeAI:
                 pygame.quit()
                 quit()
         
+        reward = 0
         #move actions
+        distance_before = self._distance_to_food(self.head)
         self.move(action)
         self.snake.insert(0, list(self.head))
+        distance_after = self._distance_to_food(self.head)
+        
+        if distance_after < distance_before:
+            reward += 0.2
+        else:
+            reward -= 0.1
+        
         
         #game over lul
-        reward = 0
+        
         game_over = False
         if self._is_collision() or self.frame_iteration > 100 * len(self.snake):
             game_over = True
-            reward = -10
+            reward -= 10
             return game_over, self.score, reward
         
         #is snake hungry
         if Point(self.head[0], self.head[1]) == self.food:
             print("Food Eaten!")
             self.score += 1
-            reward = 10
+            reward += 10
             self._place_food()
         else:
             self.snake.pop()
-            reward = 0.1
+            reward -= 0.01
+            
+       
+        
             
         self._update_ui()
         self.clock.tick(60)
@@ -119,12 +131,16 @@ class SnakeAI:
             return True
         
         return False
+    
+    def _distance_to_food(self, pos):
+        return abs(pos[0] - self.food.x) + abs(pos[1] - self.food.y)
 
     def _update_ui(self):
         self.display.fill(black)
         for pt in self.snake:
             pygame.draw.rect(self.display, green, pygame.Rect(pt[0], pt[1], block_size, block_size))
-            pygame.draw.rect(self.display, red, pygame.Rect(self.food[0], self.food[1], block_size, block_size))
+        
+        pygame.draw.rect(self.display, red, pygame.Rect(self.food[0], self.food[1], block_size, block_size))
         
         font = pygame.font.SysFont("Arial", 25)
         text = font.render(f"Score: {self.score}", True, white)

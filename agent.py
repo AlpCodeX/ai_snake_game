@@ -64,22 +64,22 @@ class Agent:
             dir_d,
             
             #Food Checks
-            game.food[0] < game.head[0], #Food is to the left
-            game.food[0] > game.head[0], #Food is to the right
-            game.food[0] < game.head[1], #Food is above
-            game.food[0] > game.head[1] #Food is below
+            game.food[0] < head[0], #Food is to the left
+            game.food[0] > head[0], #Food is to the right
+            game.food[1] < head[1], #Food is above
+            game.food[1] > head[1] #Food is below
             
         ]
         
         return np.array(state, dtype=int)
     
-    def remember(self, state, action, reward, next_step, done):
+    def remember(self, state, action, reward, next_state, done):
         #Stores on game step at a time for memory
-        self.memory.append((state, action, reward, next_step, done))
+        self.memory.append((state, action, reward, next_state, done))
         
     def get_action(self, state):
         #Choose an action, ethier random (exploration mode) or model-base (expidition mode)
-        self.epsilon = 80 - self.n_games #decreases randomness over number of games played
+        self.epsilon = max(10, 80 - self.n_games) #decreases randomness over number of games played
         final_move = [0,0,0]
         
         
