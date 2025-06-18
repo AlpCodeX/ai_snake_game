@@ -3,7 +3,8 @@ import time
 import random
 import numpy as np
 from enum import Enum
-from collections import namedtuple
+from collections import namedtuple, deque
+import torch
 
 pygame.init()
 pygame.font.init()
@@ -38,7 +39,7 @@ class Direction(Enum):
     down = 4
 
 class SnakeAI:
-    def __init__(self):
+    def __init__(self, agent=None):
         
         self.width = 640
         self.height = 480
@@ -49,6 +50,9 @@ class SnakeAI:
         pygame.display.set_caption("Snake AI")
         self.clock = pygame.time.Clock()
         self.reset()
+        self.agent = agent
+        
+        self.prev_positions = deque(maxlen=20)
         
         
     
@@ -85,30 +89,34 @@ class SnakeAI:
         self.move(action)
         self.snake.insert(0, list(self.head))
         distance_after = self._distance_to_food(self.head)
+        self.prev_positions.append(tuple(self.head))
         
-        if distance_after < distance_before:
-            reward += 0.2
-        else:
-            reward -= 0.1
+        detla_distance = distance_before - distance_after
+        reward += detla_distance * 2
         
+        
+        loop_count = self.prev_positions.count(tuple(self.head))
+        
+        if loop_count > 2:
+            reward -= 50
         
         #game over lul
         
         game_over = False
-        if self._is_collision() or self.frame_iteration > 100 * len(self.snake):
+        if self._is_collision() or self.frame_iteration > 80 * len(self.snake):
             game_over = True
-            reward -= 10
+            reward -= 20
             return game_over, self.score, reward
         
         #is snake hungry
         if Point(self.head[0], self.head[1]) == self.food:
             print("Food Eaten!")
             self.score += 1
-            reward += 10
+            reward += 20
             self._place_food()
         else:
             self.snake.pop()
-            reward -= 0.01
+            reward -= 0.1
             
        
         
@@ -137,15 +145,23 @@ class SnakeAI:
 
     def _update_ui(self):
         self.display.fill(black)
+        if self.agent:
+            self.draw_heatmap(self.agent)
         for pt in self.snake:
             pygame.draw.rect(self.display, green, pygame.Rect(pt[0], pt[1], block_size, block_size))
         
         pygame.draw.rect(self.display, red, pygame.Rect(self.food[0], self.food[1], block_size, block_size))
         
+       
+        
         font = pygame.font.SysFont("Arial", 25)
         text = font.render(f"Score: {self.score}", True, white)
         self.display.blit(text, [10,10])
         pygame.display.flip()
+        
+        if hasattr(self, "agent_state"):
+            state_text = font.render(f"State: {self.agent_state}", True, (200, 200, 200))
+            self.display.blit(state_text, [10,70])
         
     def move(self, action):
     # [straight, right, left]
@@ -163,6 +179,39 @@ class SnakeAI:
         x, y = self.head
         dx, dy = self.direction
         self.head = [x + dx * block_size, y + dy * block_size]
+        
+    def draw_heatmap(self, agent):
+        head = self.snake[0]
+
+        # Get current state
+        state = agent.get_state(self)
+        state_tensor = torch.tensor(state, dtype=torch.float).unsqueeze(0)
+
+        # Predict Q-values
+        q_values = agent.model(state_tensor).detach().numpy()[0]  # [Q_left, Q_straight, Q_right]
+
+        # Normalize for coloring
+        q_min, q_max = min(q_values), max(q_values)
+        q_range = q_max - q_min if q_max != q_min else 1e-5
+
+        colors = []
+        for q in q_values:
+            # Interpolate red intensity: high Q → brighter red
+            intensity = int(255 * (q - q_min) / q_range)
+            colors.append((intensity, 0, 0))  # (R, G, B)
+
+        # Directions relative to current heading
+        directions = agent.get_relative_directions(self.direction)
+
+        for dir_vector, color in zip(directions, colors):
+            dx, dy = dir_vector
+            x = head[0] + dx * self.block_size
+            y = head[1] + dy * self.block_size
+
+            rect = pygame.Rect(x, y, self.block_size, self.block_size)
+            pygame.draw.rect(self.display, color, rect, border_radius=4)
+
+
 
             
         

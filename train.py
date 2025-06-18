@@ -2,7 +2,7 @@ from agent import Agent
 from snake_game import SnakeAI
 
 agent = Agent()
-game = SnakeAI()
+game = SnakeAI(agent=agent)
 
 while True:
     #Current State of the Union, I mean game
@@ -15,6 +15,7 @@ while True:
     done, score, reward = game.play_step(action)
     state_new = agent.get_state(game)
     
+    game.agent_state = state_old.tolist()
     #train short term
     agent.train_short_memory(state_old, action, reward, state_new, done)
     
@@ -32,5 +33,5 @@ while True:
             agent.record = score
             agent.model.save()
             
-        print(f'Game: {agent.n_games} | Score: {score} | Record: {agent.record}')
+        print(f'Game: {agent.n_games} | Score: {score} | Record: {agent.record}, Frames: {game.frame_iteration}')
     

@@ -5,8 +5,8 @@ from collections import deque
 from snake_game import SnakeAI, Direction, Point
 from model import LinearQNet, QTrainer
 #Constants
-MAX_MEMORY = 100_000
-BATCH_SIZE = 1000
+MAX_MEMORY = 1000_000
+BATCH_SIZE = 10000
 LR = 0.001
 
 class Agent:
@@ -19,7 +19,7 @@ class Agent:
         self.gamma = 0.9 #Closer to 1 = focused more on long term rewards rather than short term
         self.memory = deque(maxlen=MAX_MEMORY)
         
-        self.model = LinearQNet(11,256,3)
+        self.model = LinearQNet(12,256,3)
         self.trainer = QTrainer(self.model, lr=LR, gamma = 0.9)
         
         
@@ -37,6 +37,11 @@ class Agent:
         dir_r = game.direction == Direction.right
         dir_u = game.direction == Direction.up
         dir_d = game.direction == Direction.down
+        
+        dist_x = abs(game.food[0] - head[0])
+        dist_y = abs(game.food[1] - head[1])
+        max_distance = game.width + game.height
+        dist_to_food = (dist_x + dist_y) / max_distance
         
         state = [
             #Check to see if there is danger straight ahead
@@ -67,9 +72,13 @@ class Agent:
             game.food[0] < head[0], #Food is to the left
             game.food[0] > head[0], #Food is to the right
             game.food[1] < head[1], #Food is above
-            game.food[1] > head[1] #Food is below
+            game.food[1] > head[1], #Food is below
+            
+            dist_to_food
             
         ]
+        
+        
         
         return np.array(state, dtype=int)
     
@@ -79,12 +88,12 @@ class Agent:
         
     def get_action(self, state):
         #Choose an action, ethier random (exploration mode) or model-base (expidition mode)
-        self.epsilon = max(10, 80 - self.n_games) #decreases randomness over number of games played
+        self.epsilon = max(10, 80 - self.n_games // 4) #decreases randomness over number of games played
         final_move = [0,0,0]
         
         
         
-        if random.randint(0, 200) < self.epsilon:
+        if random.randint(5, 200) < self.epsilon:
             move = random.randint(0,2)
             final_move[move] = 1
         else:
@@ -109,9 +118,23 @@ class Agent:
             mini_sample = random.sample(self.memory, BATCH_SIZE)
         else:
             mini_sample = self.memory
-            
+        
         states, actions, rewards, next_states, dones = zip(*mini_sample)
         self.trainer.train_step(states, actions, rewards, next_states, dones)
+        
+        print(f"Long Term Memory Trained on {len(mini_sample)} samples.")
+        
+    def get_relative_directions(self, current_dir):
+        if current_dir == Direction.up:
+            return [( -1,  0), ( 0, -1), ( 1,  0)]  # left, straight, right
+        elif current_dir == Direction.down:
+            return [( 1,  0), ( 0,  1), (-1,  0)]
+        elif current_dir == Direction.left:
+            return [( 0,  1), (-1,  0), ( 0, -1)]
+        elif current_dir == Direction.right:
+            return [( 0, -1), (1,  0), ( 0,  1)]
+        else:
+            return [(0,0), (0,0), (0,0)]
         
         
             
